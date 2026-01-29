@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  ruby: circleci/ruby@2.1.1
   macos: circleci/macos@2.5.1
 
 jobs:
@@ -9,9 +8,15 @@ jobs:
     macos:
       xcode: 15.4.0
     resource_class: macos.m1.medium.gen1
+    environment:
+      TERM: dumb
     steps:
       - checkout
-      - ruby/install-deps
+      - run:
+          name: Install dependencies
+          command: |
+            bundle config set --local path 'vendor/bundle'
+            bundle install
       - run: bundle exec fastlane build_for_ui_test
       - persist_to_workspace:
           root: .
@@ -23,6 +28,8 @@ jobs:
     macos:
       xcode: 15.4.0
     resource_class: macos.m1.medium.gen1
+    environment:
+      TERM: dumb
     steps:
       - checkout
       - macos/preboot-simulator:
@@ -30,7 +37,11 @@ jobs:
           version: "17.5"
       - attach_workspace:
           at: .
-      - ruby/install-deps
+      - run:
+          name: Install dependencies
+          command: |
+            bundle config set --local path 'vendor/bundle'
+            bundle install
       - run:
           name: Split tests and run UITests
           command: |
