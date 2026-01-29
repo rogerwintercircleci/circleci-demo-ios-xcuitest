@@ -1,0 +1,52 @@
+version: 2.1
+
+orbs:
+  ruby: circleci/ruby@2.1.1
+  macos: circleci/macos@2.5.1
+
+jobs:
+  build_for_ui_test:
+    macos:
+      xcode: 15.4.0
+    resource_class: macos.m1.medium.gen1
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run: bundle exec fastlane build_for_ui_test
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
+  ui_test_parallel:
+    parallelism: 2
+    macos:
+      xcode: 15.4.0
+    resource_class: macos.m1.medium.gen1
+    steps:
+      - checkout
+      - macos/preboot-simulator:
+          device: iPhone 15
+          version: "17.5"
+      - attach_workspace:
+          at: .
+      - ruby/install-deps
+      - run:
+          name: Split tests and run UITests
+          command: |
+            CLASSNAMES=$(circleci tests glob "CircleCIDemoUITests/*.swift" \
+              | sed 's@/@.@g' \
+              | sed 's/.swift//' \
+              | circleci tests split --split-by=timings --timings-type=classname)
+            FASTLANE_ARGS=$(echo $CLASSNAMES | sed -e 's/\./\//g' -e 's/ /,/g')
+            bundle exec fastlane ui_test_without_building tests:$FASTLANE_ARGS
+      - store_test_results:
+          path: fastlane/test_output/report.junit
+
+workflows:
+  main:
+    jobs:
+      - build_for_ui_test
+      - ui_test_parallel:
+          requires:
+            - build_for_ui_test

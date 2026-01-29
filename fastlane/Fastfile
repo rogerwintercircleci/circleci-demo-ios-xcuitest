@@ -1,0 +1,36 @@
+default_platform(:ios)
+
+platform :ios do
+  before_all do
+    setup_circle_ci
+  end
+
+  desc "Run all UITests"
+  lane :ui_test_all do
+    run_tests(
+      scheme: "CircleCIDemoUITests",
+      devices: ["iPhone 15 (17.5)"]
+    )
+  end
+
+  desc "Build for UITests"
+  lane :build_for_ui_test do
+    run_tests(
+      scheme: "CircleCIDemoUITests",
+      devices: ["iPhone 15 (17.5)"],
+      derived_data_path: "dist",
+      build_for_testing: true
+    )
+  end
+
+  desc "Run specific UITests"
+  lane :ui_test_without_building do |options|
+    run_tests(
+      scheme: "CircleCIDemoUITests",
+      devices: ["iPhone 15 (17.5)"],
+      only_testing: options[:tests],
+      derived_data_path: "dist",
+      test_without_building: true
+    )
+  end
+end
